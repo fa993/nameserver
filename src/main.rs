@@ -134,7 +134,12 @@ async fn main() -> Result<(), NameserverError> {
             .service(register)
             .service(hello)
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind((
+        "0.0.0.0",
+        option_env!("PORT")
+            .and_then(|f| f.parse().ok())
+            .unwrap_or(8080),
+    ))?
     .run()
     .await?;
     Ok(())
