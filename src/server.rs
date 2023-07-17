@@ -17,8 +17,8 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ConnectServer {
-    url: String,
-    service_id: String,
+    pub url: String,
+    pub service_id: String,
 }
 
 impl Model {

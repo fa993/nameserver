@@ -11,6 +11,8 @@ use sea_orm::{
     Database, Schema,
 };
 
+use crate::server::ConnectServer;
+
 const BRANCH_FACTOR: u32 = 6;
 
 #[derive(Debug)]
@@ -56,10 +58,11 @@ async fn hello() -> impl Responder {
 #[post("/register")]
 async fn register(
     state: web::Data<DatabaseConnection>,
-    service_id: String,
-    body: String,
+    conn_s: web::Json<ConnectServer>
 ) -> Result<impl Responder, NameserverError> {
-    debug!("{body} wants to register itself");
+    let body = &conn_s.url;
+    let service_id = &conn_s.service_id;
+    debug!("{body}:{service_id} wants to register itself");
     //find it in table first
     let en = server::Entity::find()
         .filter(
@@ -67,20 +70,20 @@ async fn register(
                 Query::select()
                     .expr(Expr::col(server::Column::Id).div(BRANCH_FACTOR))
                     .from(server::Entity)
-                    .and_where(server::Column::Url.eq(&body))
+                    .and_where(server::Column::Url.eq(body))
                     .to_owned(),
             ),
         )
         .one(state.as_ref())
         .await?;
     if let Some(t) = en {
-        debug!("{body} is already registered so sending the same url back");
+        debug!("{body}:{service_id} is already registered so sending the same url back");
         Ok(HttpResponse::Ok().json(t.to_body()))
     } else {
         //insert and then fetch url at id / 5
         let res = server::ActiveModel {
             url: sea_orm::ActiveValue::Set(body.clone()),
-            service_id: sea_orm::ActiveValue::Set(service_id),
+            service_id: sea_orm::ActiveValue::Set(service_id.clone()),
             ..Default::default()
         }
         .insert(state.as_ref())
@@ -90,7 +93,7 @@ async fn register(
         let idd = res.id - 1;
         if idd == 0 {
             //first registration.. no need to connect to anything
-            debug!("First registration for {body}");
+            debug!("First registration for {body}:{service_id}");
             Ok(HttpResponse::Ok().body(""))
         } else {
             let id_to_find = idd as u32 / BRANCH_FACTOR;
@@ -98,7 +101,7 @@ async fn register(
                 .one(state.as_ref())
                 .await?
                 .ok_or(NameserverError::ParentNotFound)?;
-            debug!("{body} parent was found ");
+            debug!("{body}:{service_id} parent was found ");
             Ok(HttpResponse::Ok().json(op.to_body()))
         }
     }
