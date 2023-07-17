@@ -56,6 +56,7 @@ async fn hello() -> impl Responder {
 #[post("/register")]
 async fn register(
     state: web::Data<DatabaseConnection>,
+    service_id: String,
     body: String,
 ) -> Result<impl Responder, NameserverError> {
     debug!("{body} wants to register itself");
@@ -74,11 +75,12 @@ async fn register(
         .await?;
     if let Some(t) = en {
         debug!("{body} is already registered so sending the same url back");
-        Ok(HttpResponse::Ok().body(t.url))
+        Ok(HttpResponse::Ok().json(t.to_body()))
     } else {
         //insert and then fetch url at id / 5
         let res = server::ActiveModel {
             url: sea_orm::ActiveValue::Set(body.clone()),
+            service_id: sea_orm::ActiveValue::Set(service_id),
             ..Default::default()
         }
         .insert(state.as_ref())
@@ -97,7 +99,7 @@ async fn register(
                 .await?
                 .ok_or(NameserverError::ParentNotFound)?;
             debug!("{body} parent was found ");
-            Ok(HttpResponse::Ok().body(op.url))
+            Ok(HttpResponse::Ok().json(op.to_body()))
         }
     }
 }

@@ -1221,6 +1221,7 @@ dependencies = [
  "log",
  "pretty_env_logger",
  "sea-orm",
+ "serde",
 ]
 
 [[package]]
