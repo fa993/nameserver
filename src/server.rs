@@ -7,6 +7,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub url: String,
+    #[sea_orm(unique)]
     pub service_id: String,
 }
 

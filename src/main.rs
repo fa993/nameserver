@@ -58,7 +58,7 @@ async fn hello() -> impl Responder {
 #[post("/register")]
 async fn register(
     state: web::Data<DatabaseConnection>,
-    conn_s: web::Json<ConnectServer>
+    conn_s: web::Json<ConnectServer>,
 ) -> Result<impl Responder, NameserverError> {
     let body = &conn_s.url;
     let service_id = &conn_s.service_id;
@@ -141,7 +141,8 @@ async fn main() -> Result<(), NameserverError> {
     })
     .bind((
         "0.0.0.0",
-        option_env!("PORT")
+        std::env::var("PORT")
+            .ok()
             .and_then(|f| f.parse().ok())
             .unwrap_or(8080),
     ))?
